@@ -1,0 +1,6 @@
+build/
+*.icns
+*.o
+*.d
+.DS_Store
+/tmp/
