@@ -36,8 +36,23 @@ swiftc \
 echo "==> Copying Info.plist…"
 cp Resources/Info.plist "$APP_BUNDLE/Contents/Info.plist"
 
-echo "==> Ad-hoc code signing…"
-codesign --force --sign - "$APP_BUNDLE"
+echo "==> Signing with Developer ID…"
+CERT="Developer ID Application: Sayed Hadi Hashemi (YW79ZL632W)"
+codesign --force \
+         --options runtime \
+         --entitlements DockClick.entitlements \
+         --sign "$CERT" \
+         "$APP_BUNDLE"
+
+echo "==> Notarizing…"
+ditto -c -k --keepParent "$APP_BUNDLE" /tmp/DockClick_notarize.zip
+xcrun notarytool submit /tmp/DockClick_notarize.zip \
+    --keychain-profile "DockClick" \
+    --wait
+rm /tmp/DockClick_notarize.zip
+
+echo "==> Stapling notarization ticket…"
+xcrun stapler staple "$APP_BUNDLE"
 
 echo ""
 echo "✓  Built: $APP_BUNDLE"
