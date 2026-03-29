@@ -4,42 +4,44 @@ A lightweight macOS menu bar utility that makes Dock icon clicks more powerful.
 
 | Shortcut | Action |
 |---|---|
-| **⌘ + Click** on a Dock icon | Open a new window in that app |
-| **⌘ ⇧ + Click** on a Dock icon | Reveal the app in Finder |
-
-> macOS default behaviour for Cmd+Click (reveal in Finder) is replaced by the new-window action. Cmd+Shift+Click restores it.
+| **⌘ + Click** on a Dock icon | Open a new window (`Cmd+N`) |
+| **⌘ ⇧ + Click** on a Dock icon | Open a new window (`Cmd+Shift+N`) |
+| **⌥ ⌘ + Click** on a Dock icon | Reveal the app in Finder |
 
 ---
 
-## How it works
-
-- Installs a `CGEventTap` to intercept mouse clicks globally
-- Uses the macOS Accessibility API to identify which Dock icon was clicked
-- If the app is **running**: activates it and sends `Cmd+N` to open a new window
-- If the app is **not running**: launches it normally (opens with a default window)
-- Runs silently in the menu bar with no Dock icon of its own
-
-## Requirements
-
-- macOS 12 Monterey or later
-- Xcode Command Line Tools (`xcode-select --install`)
-
-## Build & Run
+## Install via Homebrew
 
 ```bash
-bash build.sh
-open build/DockClick.app
+brew tap xldrx/tap
+brew install --cask dockclick
 ```
 
 On first launch, macOS will prompt for **Accessibility permission**.
 Grant it in **System Settings → Privacy & Security → Accessibility**, then relaunch.
 
-## Install
+## Manual install
+
+Download the latest `DockClick.zip` from [Releases](https://github.com/xldrx/mac-dock-click/releases), unzip, and move `DockClick.app` to `/Applications`.
+
+## How it works
+
+- Installs a `CGEventTap` to intercept mouse clicks globally
+- Uses the macOS Accessibility API to identify which Dock icon was clicked
+- Sends keystrokes directly to the target process via `CGEvent.postToPid` — no Space switching required
+- Runs silently in the menu bar with no Dock icon of its own
+- Registers itself as a Login Item on first launch (toggle via menu bar)
+
+## Requirements
+
+- macOS 12 Monterey or later
+
+## Build from source
 
 ```bash
+xcode-select --install   # if not already installed
 bash build.sh
-cp -r build/DockClick.app /Applications/
-open /Applications/DockClick.app
+open build/DockClick.app
 ```
 
 ## Project structure
@@ -53,7 +55,7 @@ open /Applications/DockClick.app
 ├── Resources/
 │   └── Info.plist
 ├── generate_icon.swift             – Draws the app icon with Core Graphics
-└── build.sh                        – Compiles, packages, and signs the .app
+└── build.sh                        – Compiles, signs, and notarizes the .app
 ```
 
 ## Author
