@@ -81,8 +81,8 @@ class DockMonitor {
             return Unmanaged.passUnretained(event)
         }
 
-        if isAlt && !isCmd {
-            print("[DockClick] Alt+Click on \(bundleID) – reveal in Finder")
+        if isAlt && isCmd && !isShift {
+            print("[DockClick] Alt+Cmd+Click on \(bundleID) – reveal in Finder")
             revealInFinder(bundleID: bundleID)
         } else if isCmd && isShift {
             print("[DockClick] Cmd+Shift+Click on \(bundleID) – open new window (Cmd+Shift+N)")

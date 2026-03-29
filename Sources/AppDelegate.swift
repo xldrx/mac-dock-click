@@ -53,7 +53,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             info1.isEnabled = false
             let info2 = NSMenuItem(title: "⌘⇧+Click → new window (⌘⇧N)", action: nil, keyEquivalent: "")
             info2.isEnabled = false
-            let info3 = NSMenuItem(title: "⌥+Click    → reveal in Finder", action: nil, keyEquivalent: "")
+            let info3 = NSMenuItem(title: "⌥⌘+Click  → reveal in Finder", action: nil, keyEquivalent: "")
             info3.isEnabled = false
             menu.addItem(info1)
             menu.addItem(info2)
