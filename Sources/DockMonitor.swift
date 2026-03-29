@@ -68,19 +68,30 @@ class DockMonitor {
             return Unmanaged.passUnretained(event)
         }
 
-        guard type == .leftMouseDown,
-              event.flags.contains(.maskCommand),
+        guard type == .leftMouseDown else { return Unmanaged.passUnretained(event) }
+
+        let flags  = event.flags
+        let isCmd  = flags.contains(.maskCommand)
+        let isAlt  = flags.contains(.maskAlternate)
+        let isShift = flags.contains(.maskShift)
+
+        guard (isCmd || isAlt),
               let bundleID = dockApp(at: event.location)
         else {
             return Unmanaged.passUnretained(event)
         }
 
-        if event.flags.contains(.maskShift) {
-            print("[DockClick] Cmd+Shift+Click on \(bundleID) – reveal in Finder")
+        if isAlt && !isCmd {
+            print("[DockClick] Alt+Click on \(bundleID) – reveal in Finder")
             revealInFinder(bundleID: bundleID)
-        } else {
-            print("[DockClick] Cmd+Click on \(bundleID) – open new window")
+        } else if isCmd && isShift {
+            print("[DockClick] Cmd+Shift+Click on \(bundleID) – open new window (Cmd+Shift+N)")
+            openNewWindow(bundleID: bundleID, withShift: true)
+        } else if isCmd {
+            print("[DockClick] Cmd+Click on \(bundleID) – open new window (Cmd+N)")
             openNewWindow(bundleID: bundleID)
+        } else {
+            return Unmanaged.passUnretained(event)
         }
         return nil  // consume event
     }
@@ -149,42 +160,33 @@ class DockMonitor {
 
     // MARK: - Open new window
 
-    private func openNewWindow(bundleID: String) {
+    private func openNewWindow(bundleID: String, withShift: Bool = false) {
         DispatchQueue.main.async {
             guard let url = NSWorkspace.shared.urlForApplication(withBundleIdentifier: bundleID) else { return }
 
             if let app = NSRunningApplication.runningApplications(withBundleIdentifier: bundleID).first {
-                // Post Cmd+N directly to the target process via CGEventPostToPid.
-                // This bypasses HID routing which requires the app to be frontmost,
-                // so no space-switch is needed (e.g. when the app is full-screen on
-                // another Space). The app receives the shortcut and creates a new
-                // window on the current Space.
-                self.sendCmdN(toPid: app.processIdentifier)
+                self.sendKeystroke(n: 45, cmd: true, shift: withShift, toPid: app.processIdentifier)
 
-                // Activate after the system has acknowledged the new window.
-                // openApplication's completion handler fires on actual activation,
-                // which is more reliable than a fixed delay.
                 let cfg = NSWorkspace.OpenConfiguration()
                 cfg.activates = true
                 NSWorkspace.shared.openApplication(at: url, configuration: cfg) { _, _ in }
             } else {
-                // App is not running: launch it (opens with a default window).
                 NSWorkspace.shared.openApplication(at: url,
                                                    configuration: NSWorkspace.OpenConfiguration())
             }
         }
     }
 
-    /// Posts Cmd+N directly to `pid` via CGEventPostToPid so the target app
-    /// receives it regardless of which Space or window is currently frontmost.
-    private func sendCmdN(toPid pid: pid_t) {
+    private func sendKeystroke(n keyCode: CGKeyCode, cmd: Bool, shift: Bool, toPid pid: pid_t) {
         let src = CGEventSource(stateID: .hidSystemState)
-        let n: CGKeyCode = 45   // kVK_ANSI_N
-        guard let keyDown = CGEvent(keyboardEventSource: src, virtualKey: n, keyDown: true),
-              let keyUp   = CGEvent(keyboardEventSource: src, virtualKey: n, keyDown: false)
+        guard let keyDown = CGEvent(keyboardEventSource: src, virtualKey: keyCode, keyDown: true),
+              let keyUp   = CGEvent(keyboardEventSource: src, virtualKey: keyCode, keyDown: false)
         else { return }
-        keyDown.flags = .maskCommand
-        keyUp.flags   = .maskCommand
+        var flags = CGEventFlags()
+        if cmd   { flags.insert(.maskCommand) }
+        if shift { flags.insert(.maskShift) }
+        keyDown.flags = flags
+        keyUp.flags   = flags
         keyDown.postToPid(pid)
         keyUp.postToPid(pid)
     }
