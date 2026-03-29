@@ -23,6 +23,10 @@
     <true/>
     <key>NSAccessibilityUsageDescription</key>
     <string>DockClick needs Accessibility access to detect Cmd+Click on Dock icons and send Cmd+N to open new windows.</string>
+    <key>NSHumanReadableCopyright</key>
+    <string>Copyright © 2026 Sayed Hadi Hashemi. All rights reserved.</string>
+    <key>CFBundleGetInfoString</key>
+    <string>DockClick 1.0, Copyright © 2026 Sayed Hadi Hashemi</string>
     <key>CFBundleIconFile</key>
     <string>AppIcon</string>
     <key>NSPrincipalClass</key>
