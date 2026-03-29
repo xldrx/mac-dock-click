@@ -19,6 +19,7 @@ private func tapCallback(
 class DockMonitor {
     private var eventTap: CFMachPort?
     private var runLoopSource: CFRunLoopSource?
+    private(set) var isRunning = false
 
     /// Returns true if the event tap was installed successfully.
     func start() -> Bool {
@@ -55,6 +56,7 @@ class DockMonitor {
         runLoopSource = CFMachPortCreateRunLoopSource(kCFAllocatorDefault, tap, 0)
         CFRunLoopAddSource(CFRunLoopGetMain(), runLoopSource, .commonModes)
         CGEvent.tapEnable(tap: tap, enable: true)
+        isRunning = true
         print("[DockClick] Event tap installed.")
     }
 

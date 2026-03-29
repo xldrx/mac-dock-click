@@ -1,4 +1,5 @@
 import Cocoa
+import ServiceManagement
 
 class AppDelegate: NSObject, NSApplicationDelegate {
     private var statusItem: NSStatusItem?
@@ -14,6 +15,8 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             updateMenuForMissingPermissions()
         }
     }
+
+    // MARK: - Menu
 
     private func setupMenuBar() {
         statusItem = NSStatusBar.system.statusItem(withLength: NSStatusItem.squareLength)
@@ -47,6 +50,17 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         }
 
         menu.addItem(.separator())
+
+        // Launch at Login (requires macOS 13+)
+        if #available(macOS 13.0, *) {
+            let loginItem = NSMenuItem(title: "Launch at Login",
+                                       action: #selector(toggleLaunchAtLogin),
+                                       keyEquivalent: "")
+            loginItem.state = SMAppService.mainApp.status == .enabled ? .on : .off
+            menu.addItem(loginItem)
+            menu.addItem(.separator())
+        }
+
         menu.addItem(NSMenuItem(title: "About DockClick", action: #selector(showAbout), keyEquivalent: ""))
         menu.addItem(NSMenuItem(title: "Quit DockClick", action: #selector(NSApplication.terminate(_:)), keyEquivalent: "q"))
         statusItem?.menu = menu
@@ -55,6 +69,23 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     private func updateMenuForMissingPermissions() {
         buildMenu(permissionGranted: false)
         statusItem?.button?.toolTip = "Accessibility permission needed"
+    }
+
+    // MARK: - Actions
+
+    @available(macOS 13.0, *)
+    @objc private func toggleLaunchAtLogin() {
+        let service = SMAppService.mainApp
+        do {
+            if service.status == .enabled {
+                try service.unregister()
+            } else {
+                try service.register()
+            }
+        } catch {
+            print("[DockClick] Launch at Login toggle failed: \(error)")
+        }
+        buildMenu(permissionGranted: monitor.isRunning)
     }
 
     @objc private func openPrivacySettings() {
