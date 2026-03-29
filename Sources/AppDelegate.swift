@@ -8,11 +8,25 @@ class AppDelegate: NSObject, NSApplicationDelegate {
 
     func applicationDidFinishLaunching(_ notification: Notification) {
         setupMenuBar()
+        registerLaunchAtLoginIfNeeded()
 
         if monitor.start() {
             print("[DockClick] Running – Cmd+Click a Dock icon to open a new window.")
         } else {
             updateMenuForMissingPermissions()
+        }
+    }
+
+    /// Registers the app as a login item on the very first launch.
+    private func registerLaunchAtLoginIfNeeded() {
+        guard #available(macOS 13.0, *) else { return }
+        let service = SMAppService.mainApp
+        guard service.status == .notRegistered else { return }
+        do {
+            try service.register()
+            print("[DockClick] Registered as login item.")
+        } catch {
+            print("[DockClick] Could not register login item: \(error)")
         }
     }
 
