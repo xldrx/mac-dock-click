@@ -149,35 +149,41 @@ class DockMonitor {
 
     private func openNewWindow(bundleID: String) {
         DispatchQueue.main.async {
+            guard let url = NSWorkspace.shared.urlForApplication(withBundleIdentifier: bundleID) else { return }
+
             if let app = NSRunningApplication.runningApplications(withBundleIdentifier: bundleID).first {
-                // App is already running: bring it to front, then send Cmd+N.
-                app.activate()
-                DispatchQueue.main.asyncAfter(deadline: .now() + 0.15) {
-                    self.sendCmdN()
-                }
+                // Post Cmd+N directly to the target process via CGEventPostToPid.
+                // This bypasses HID routing which requires the app to be frontmost,
+                // so no space-switch is needed (e.g. when the app is full-screen on
+                // another Space). The app receives the shortcut and creates a new
+                // window on the current Space.
+                self.sendCmdN(toPid: app.processIdentifier)
+
+                // Activate after the system has acknowledged the new window.
+                // openApplication's completion handler fires on actual activation,
+                // which is more reliable than a fixed delay.
+                let cfg = NSWorkspace.OpenConfiguration()
+                cfg.activates = true
+                NSWorkspace.shared.openApplication(at: url, configuration: cfg) { _, _ in }
             } else {
-                // App is not running: just launch it (it will open with a default window).
-                guard let url = NSWorkspace.shared.urlForApplication(withBundleIdentifier: bundleID) else {
-                    return
-                }
-                NSWorkspace.shared.openApplication(
-                    at: url,
-                    configuration: NSWorkspace.OpenConfiguration()
-                )
+                // App is not running: launch it (opens with a default window).
+                NSWorkspace.shared.openApplication(at: url,
+                                                   configuration: NSWorkspace.OpenConfiguration())
             }
         }
     }
 
-    /// Synthesises a Cmd+N keystroke to the frontmost application.
-    private func sendCmdN() {
+    /// Posts Cmd+N directly to `pid` via CGEventPostToPid so the target app
+    /// receives it regardless of which Space or window is currently frontmost.
+    private func sendCmdN(toPid pid: pid_t) {
         let src = CGEventSource(stateID: .hidSystemState)
         let n: CGKeyCode = 45   // kVK_ANSI_N
-
-        let keyDown = CGEvent(keyboardEventSource: src, virtualKey: n, keyDown: true)
-        let keyUp   = CGEvent(keyboardEventSource: src, virtualKey: n, keyDown: false)
-        keyDown?.flags = .maskCommand
-        keyUp?.flags   = .maskCommand
-        keyDown?.post(tap: .cghidEventTap)
-        keyUp?.post(tap: .cghidEventTap)
+        guard let keyDown = CGEvent(keyboardEventSource: src, virtualKey: n, keyDown: true),
+              let keyUp   = CGEvent(keyboardEventSource: src, virtualKey: n, keyDown: false)
+        else { return }
+        keyDown.flags = .maskCommand
+        keyUp.flags   = .maskCommand
+        keyDown.postToPid(pid)
+        keyUp.postToPid(pid)
     }
 }
