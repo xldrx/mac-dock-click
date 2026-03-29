@@ -58,6 +58,3 @@ open build/DockClick.app
 └── build.sh                        – Compiles, signs, and notarizes the .app
 ```
 
-## Author
-
-**Sayed Hadi Hashemi**
